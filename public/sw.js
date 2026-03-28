@@ -1,4 +1,4 @@
-const CACHE = "organizador-v2";
+const CACHE = "organizador-v3";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
@@ -13,16 +13,9 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-  const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith("/api/")) return;
-
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request).then((r) => r || Response.error())),
-  );
-});
+// No interceptamos fetch: el patrón "network + cache o Response.error()" rompe el enrutado
+// del App Router (peticiones RSC / _next) y en móvil suele dejar pantalla negra o en blanco.
+// Push y notificaciones siguen funcionando sin este listener.
 
 self.addEventListener("push", (event) => {
   let data = {};

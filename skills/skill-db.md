@@ -8,7 +8,7 @@
 
 - Tiempos: guardar `dueAt` y `fireAt` en **UTC** (`DateTime` Prisma).
 - `Item.timezone`: IANA string (ej. `America/Argentina/Buenos_Aires`) para interpretar `allDay` en UI.
-- Migraciones: `npx prisma migrate dev` en desarrollo; no editar SQL a mano salvo migraciones custom documentadas.
+- Migraciones: Postgres; `npx prisma migrate deploy` en bases vacías/CI; `npx prisma migrate dev` en desarrollo. El historial previo SQLite fue reemplazado por una baseline `postgres_baseline`.
 
 ## Tag
 
