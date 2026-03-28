@@ -10,6 +10,9 @@ import { Image as TiptapImage } from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { NoteAudio, NoteVideo } from "@/lib/note-tiptap-media";
+import { NoteImageLightbox } from "@/components/note-image-lightbox";
+import { NoteMediaRecorderModal } from "@/components/note-media-recorder";
+import { isNoteMediaImageSrc } from "@/lib/note-media-url";
 
 /**
  * Nombres tipo Word; valores CSS con fallback. Si la fuente no está instalada
@@ -50,6 +53,22 @@ function escapeHtml(s: string) {
 const ITEM_LINK_RE = /^\/dashboard\/items\/[a-z0-9]+$/i;
 
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/gif,image/webp";
+const AUDIO_ACCEPT = "audio/mpeg,audio/webm,audio/wav,audio/ogg,audio/mp4";
+const VIDEO_ACCEPT = "video/mp4,video/webm,video/quicktime";
+
+type MediaMenuId = "photo" | "audio" | "video";
+
+function useFinePointer() {
+  const [fine, setFine] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const sync = () => setFine(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return fine;
+}
 
 async function maybeCompressImage(file: File, maxEdge = 1920): Promise<File> {
   if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
@@ -180,16 +199,41 @@ export function NoteRichEditor({
   notePageIdRef.current = notePageId;
 
   const [uploading, setUploading] = useState(false);
-  const imageGalleryRef = useRef<HTMLInputElement>(null);
-  const imageCameraRef = useRef<HTMLInputElement>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
+  const [openMediaMenu, setOpenMediaMenu] = useState<MediaMenuId | null>(null);
+  const [recorderOpen, setRecorderOpen] = useState<"audio" | "video" | null>(null);
+  const imagePickRef = useRef<HTMLInputElement>(null);
+  const imageCaptureRef = useRef<HTMLInputElement>(null);
+  const audioPickRef = useRef<HTMLInputElement>(null);
+  const audioCaptureRef = useRef<HTMLInputElement>(null);
+  const videoPickRef = useRef<HTMLInputElement>(null);
+  const videoCaptureRef = useRef<HTMLInputElement>(null);
+  const mediaMenusRef = useRef<HTMLDivElement>(null);
+  const finePointer = useFinePointer();
   const linkSelectRef = useRef<HTMLSelectElement>(null);
   const lastTemplateNonce = useRef<number | null>(null);
+  const editorShellRef = useRef<HTMLDivElement>(null);
+  const [imageLightbox, setImageLightbox] = useState<{ src: string; alt: string } | null>(null);
 
   useEffect(() => {
     lastTemplateNonce.current = null;
   }, [notePageId]);
+
+  useEffect(() => {
+    if (openMediaMenu == null) return;
+    const onDocPointer = (e: PointerEvent) => {
+      if (mediaMenusRef.current?.contains(e.target as Node)) return;
+      setOpenMediaMenu(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenMediaMenu(null);
+    };
+    document.addEventListener("pointerdown", onDocPointer, true);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDocPointer, true);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [openMediaMenu]);
 
   const editor = useEditor(
     {
@@ -237,6 +281,51 @@ export function NoteRichEditor({
 
   useEffect(() => {
     editor?.setEditable(!readOnly);
+  }, [editor, readOnly]);
+
+  useEffect(() => {
+    const root = editorShellRef.current;
+    if (!root || !editor) return;
+
+    function tryOpen(img: HTMLImageElement) {
+      const src = img.getAttribute("src")?.trim() ?? "";
+      if (!isNoteMediaImageSrc(src)) return false;
+      const alt = img.getAttribute("alt")?.trim() || "Imagen en la nota";
+      setImageLightbox({ src, alt });
+      return true;
+    }
+
+    /** Captura: ProseMirror suele frenar la burbuja; sin esto el clic puede abrir la URL de la imagen. */
+    const onClick = (e: MouseEvent) => {
+      if (!readOnly) return;
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      const img = t.closest("img");
+      if (!img || !root.contains(img)) return;
+      if (!tryOpen(img)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    };
+
+    const onDblClick = (e: MouseEvent) => {
+      if (readOnly) return;
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      const img = t.closest("img");
+      if (!img || !root.contains(img)) return;
+      if (!tryOpen(img)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    };
+
+    root.addEventListener("click", onClick, true);
+    root.addEventListener("dblclick", onDblClick, true);
+    return () => {
+      root.removeEventListener("click", onClick, true);
+      root.removeEventListener("dblclick", onDblClick, true);
+    };
   }, [editor, readOnly]);
 
   const tool = useEditorState({
@@ -332,25 +421,7 @@ export function NoteRichEditor({
     [editor, readOnly],
   );
 
-  const onPickGallery = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    void handleMediaFile(f);
-  };
-
-  const onPickCamera = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    void handleMediaFile(f);
-  };
-
-  const onPickAudio = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    void handleMediaFile(f);
-  };
-
-  const onPickVideo = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onMediaFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     e.target.value = "";
     void handleMediaFile(f);
@@ -367,43 +438,63 @@ export function NoteRichEditor({
   const busy = uploading || readOnly;
 
   return (
-    <div className="note-rich-editor rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-950">
+    <div className="note-rich-editor rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-950 [&_img.note-embed-img]:cursor-zoom-in">
       <input
-        ref={imageGalleryRef}
+        ref={imagePickRef}
         type="file"
         accept={IMAGE_ACCEPT}
         className="sr-only"
         aria-hidden
         tabIndex={-1}
-        onChange={onPickGallery}
+        onChange={onMediaFileInputChange}
       />
       <input
-        ref={imageCameraRef}
+        ref={imageCaptureRef}
         type="file"
         accept="image/*"
         capture="environment"
         className="sr-only"
         aria-hidden
         tabIndex={-1}
-        onChange={onPickCamera}
+        onChange={onMediaFileInputChange}
       />
       <input
-        ref={audioInputRef}
+        ref={audioPickRef}
         type="file"
-        accept="audio/mpeg,audio/webm,audio/wav,audio/ogg,audio/mp4"
+        accept={AUDIO_ACCEPT}
         className="sr-only"
         aria-hidden
         tabIndex={-1}
-        onChange={onPickAudio}
+        onChange={onMediaFileInputChange}
       />
       <input
-        ref={videoInputRef}
+        ref={audioCaptureRef}
         type="file"
-        accept="video/mp4,video/webm,video/quicktime"
+        accept="audio/*"
+        capture
         className="sr-only"
         aria-hidden
         tabIndex={-1}
-        onChange={onPickVideo}
+        onChange={onMediaFileInputChange}
+      />
+      <input
+        ref={videoPickRef}
+        type="file"
+        accept={VIDEO_ACCEPT}
+        className="sr-only"
+        aria-hidden
+        tabIndex={-1}
+        onChange={onMediaFileInputChange}
+      />
+      <input
+        ref={videoCaptureRef}
+        type="file"
+        accept="video/*"
+        capture="environment"
+        className="sr-only"
+        aria-hidden
+        tabIndex={-1}
+        onChange={onMediaFileInputChange}
       />
 
       {!readOnly ? (
@@ -493,26 +584,165 @@ export function NoteRichEditor({
 
           <span className="mx-1 hidden h-6 w-px bg-slate-200 sm:inline dark:bg-slate-600" aria-hidden />
 
-          <ToolbarButton
-            ariaLabel="Insertar imagen desde galería o archivos"
-            disabled={busy}
-            onClick={() => imageGalleryRef.current?.click()}
-          >
-            <span className="px-1 text-xs whitespace-nowrap">Imagen</span>
-          </ToolbarButton>
-          <ToolbarButton
-            ariaLabel="Tomar foto con la cámara"
-            disabled={busy}
-            onClick={() => imageCameraRef.current?.click()}
-          >
-            <span className="px-1 text-xs whitespace-nowrap">Foto</span>
-          </ToolbarButton>
-          <ToolbarButton ariaLabel="Insertar audio" disabled={busy} onClick={() => audioInputRef.current?.click()}>
-            <span className="px-1 text-xs whitespace-nowrap">Audio</span>
-          </ToolbarButton>
-          <ToolbarButton ariaLabel="Insertar video" disabled={busy} onClick={() => videoInputRef.current?.click()}>
-            <span className="px-1 text-xs whitespace-nowrap">Video</span>
-          </ToolbarButton>
+          <div ref={mediaMenusRef} className="flex flex-wrap items-start gap-x-1 gap-y-2">
+            <div className="relative">
+              <button
+                type="button"
+                disabled={busy}
+                aria-haspopup="menu"
+                aria-expanded={openMediaMenu === "photo"}
+                aria-label="Foto: elegir imagen o sacar foto"
+                className={`min-h-9 shrink-0 rounded-lg border px-2 text-sm font-medium transition disabled:opacity-40 ${
+                  openMediaMenu === "photo"
+                    ? "border-teal-500 bg-teal-50 text-teal-900 dark:border-teal-600 dark:bg-teal-950/60 dark:text-teal-100"
+                    : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                }`}
+                onClick={() => setOpenMediaMenu((m) => (m === "photo" ? null : "photo"))}
+              >
+                <span className="px-1 text-xs whitespace-nowrap">Foto ▾</span>
+              </button>
+              {openMediaMenu === "photo" ? (
+                <ul
+                  role="menu"
+                  aria-label="Opciones de foto"
+                  className="absolute left-0 top-full z-30 mt-1 min-w-[13rem] rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-600 dark:bg-slate-800"
+                >
+                  <li role="none">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex min-h-11 w-full items-center px-3 text-left text-sm text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-700"
+                      onClick={() => {
+                        setOpenMediaMenu(null);
+                        imagePickRef.current?.click();
+                      }}
+                    >
+                      Elegir imagen
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex min-h-11 w-full items-center px-3 text-left text-sm text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-700"
+                      onClick={() => {
+                        setOpenMediaMenu(null);
+                        imageCaptureRef.current?.click();
+                      }}
+                    >
+                      Sacar foto
+                    </button>
+                  </li>
+                </ul>
+              ) : null}
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                disabled={busy}
+                aria-haspopup="menu"
+                aria-expanded={openMediaMenu === "audio"}
+                aria-label="Audio: elegir archivo o grabar nota de voz"
+                className={`min-h-9 shrink-0 rounded-lg border px-2 text-sm font-medium transition disabled:opacity-40 ${
+                  openMediaMenu === "audio"
+                    ? "border-teal-500 bg-teal-50 text-teal-900 dark:border-teal-600 dark:bg-teal-950/60 dark:text-teal-100"
+                    : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                }`}
+                onClick={() => setOpenMediaMenu((m) => (m === "audio" ? null : "audio"))}
+              >
+                <span className="px-1 text-xs whitespace-nowrap">Audio ▾</span>
+              </button>
+              {openMediaMenu === "audio" ? (
+                <ul
+                  role="menu"
+                  aria-label="Opciones de audio"
+                  className="absolute left-0 top-full z-30 mt-1 min-w-[13rem] rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-600 dark:bg-slate-800"
+                >
+                  <li role="none">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex min-h-11 w-full items-center px-3 text-left text-sm text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-700"
+                      onClick={() => {
+                        setOpenMediaMenu(null);
+                        audioPickRef.current?.click();
+                      }}
+                    >
+                      Elegir audio
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex min-h-11 w-full items-center px-3 text-left text-sm text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-700"
+                      onClick={() => {
+                        setOpenMediaMenu(null);
+                        if (finePointer) setRecorderOpen("audio");
+                        else audioCaptureRef.current?.click();
+                      }}
+                    >
+                      Grabar nota de voz
+                    </button>
+                  </li>
+                </ul>
+              ) : null}
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                disabled={busy}
+                aria-haspopup="menu"
+                aria-expanded={openMediaMenu === "video"}
+                aria-label="Video: elegir archivo o grabar con la cámara"
+                className={`min-h-9 shrink-0 rounded-lg border px-2 text-sm font-medium transition disabled:opacity-40 ${
+                  openMediaMenu === "video"
+                    ? "border-teal-500 bg-teal-50 text-teal-900 dark:border-teal-600 dark:bg-teal-950/60 dark:text-teal-100"
+                    : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                }`}
+                onClick={() => setOpenMediaMenu((m) => (m === "video" ? null : "video"))}
+              >
+                <span className="px-1 text-xs whitespace-nowrap">Video ▾</span>
+              </button>
+              {openMediaMenu === "video" ? (
+                <ul
+                  role="menu"
+                  aria-label="Opciones de video"
+                  className="absolute left-0 top-full z-30 mt-1 min-w-[13rem] rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-600 dark:bg-slate-800"
+                >
+                  <li role="none">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex min-h-11 w-full items-center px-3 text-left text-sm text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-700"
+                      onClick={() => {
+                        setOpenMediaMenu(null);
+                        videoPickRef.current?.click();
+                      }}
+                    >
+                      Elegir video
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex min-h-11 w-full items-center px-3 text-left text-sm text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-700"
+                      onClick={() => {
+                        setOpenMediaMenu(null);
+                        if (finePointer) setRecorderOpen("video");
+                        else videoCaptureRef.current?.click();
+                      }}
+                    >
+                      Grabar video
+                    </button>
+                  </li>
+                </ul>
+              ) : null}
+            </div>
+          </div>
           {uploading ? (
             <span className="flex items-center px-2 text-xs text-slate-500 dark:text-slate-400">Subiendo…</span>
           ) : null}
@@ -622,7 +852,21 @@ export function NoteRichEditor({
         </div>
       ) : null}
 
-      <EditorContent editor={editor} />
+      <div ref={editorShellRef}>
+        <EditorContent editor={editor} />
+      </div>
+      <NoteImageLightbox
+        open={imageLightbox !== null}
+        src={imageLightbox?.src ?? null}
+        alt={imageLightbox?.alt ?? ""}
+        onClose={() => setImageLightbox(null)}
+      />
+      <NoteMediaRecorderModal
+        mode={recorderOpen === "video" ? "video" : "audio"}
+        open={recorderOpen !== null}
+        onClose={() => setRecorderOpen(null)}
+        onRecorded={(file) => void handleMediaFile(file)}
+      />
     </div>
   );
 }

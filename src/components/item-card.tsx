@@ -1,3 +1,5 @@
+﻿"use client";
+
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { ItemCardChecklist } from "@/components/item-card-checklist";
@@ -5,12 +7,20 @@ import { ItemRowActions } from "@/components/item-row-actions";
 import { ItemSnoozeButtons } from "@/components/item-snooze-buttons";
 import type { ItemPayload } from "@/lib/item-service";
 
-function formatDue(dueAt: Date | null, allDay: boolean) {
-  if (!dueAt) return "Sin fecha límite";
+function toDate(value: Date | string | null | undefined): Date | null {
+  if (value == null) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function formatDue(dueAt: Date | string | null, allDay: boolean) {
+  const d = toDate(dueAt);
+  if (!d) return "Sin fecha límite";
   return new Intl.DateTimeFormat("es", {
     dateStyle: "medium",
     timeStyle: allDay ? undefined : "short",
-  }).format(dueAt);
+  }).format(d);
 }
 
 export function ItemCard({ item }: { item: ItemPayload }) {

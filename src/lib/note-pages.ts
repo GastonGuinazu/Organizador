@@ -1,4 +1,4 @@
-export type NotePageTreeRow = {
+﻿export type NotePageTreeRow = {
   id: string;
   parentId: string | null;
   title: string;
@@ -11,6 +11,16 @@ export type NotePageTreeNode = {
   sortOrder: number;
   children: NotePageTreeNode[];
 };
+
+/** Aplana el árbol a filas para breadcrumbs y búsquedas sin volver a pedir metadatos planos. */
+export function flattenNoteTreeToRows(nodes: NotePageTreeNode[], parentId: string | null = null): NotePageTreeRow[] {
+  const out: NotePageTreeRow[] = [];
+  for (const n of nodes) {
+    out.push({ id: n.id, parentId, title: n.title, sortOrder: n.sortOrder });
+    out.push(...flattenNoteTreeToRows(n.children, n.id));
+  }
+  return out;
+}
 
 /** Todas las páginas del subárbol con raíz `rootId` (incluye la raíz). */
 export function collectNotePageSubtreeIds(

@@ -24,13 +24,27 @@ export async function PATCH(req: Request) {
     );
   }
 
-  if (parsed.data.reminderEmailEnabled === undefined) {
-    return NextResponse.json({ error: "Nada que actualizar" }, { status: 400 });
+  const data: {
+    reminderEmailEnabled?: boolean;
+    notificationEmail?: string | null;
+    notificationPhone?: string | null;
+  } = {};
+
+  if (parsed.data.reminderEmailEnabled !== undefined) {
+    data.reminderEmailEnabled = parsed.data.reminderEmailEnabled;
+  }
+  if (parsed.data.notificationEmail !== undefined) {
+    const v = parsed.data.notificationEmail;
+    data.notificationEmail = v === "" ? null : v.toLowerCase();
+  }
+  if (parsed.data.notificationPhone !== undefined) {
+    const v = parsed.data.notificationPhone.trim();
+    data.notificationPhone = v === "" ? null : v;
   }
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { reminderEmailEnabled: parsed.data.reminderEmailEnabled },
+    data,
   });
 
   return NextResponse.json({ ok: true });

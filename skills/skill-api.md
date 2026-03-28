@@ -30,13 +30,15 @@
 | GET | `/api/note-pages/[id]` | Detalle de una página |
 | PATCH | `/api/note-pages/[id]` | Actualizar título, cuerpo, `parentId`, `sortOrder` |
 | DELETE | `/api/note-pages/[id]` | Eliminar página (cascade a subpáginas) |
-| GET | `/api/cron/reminders` | Procesar recordatorios pendientes; header `Authorization: Bearer CRON_SECRET` |
-| PATCH | `/api/user/settings` | Preferencias de cuenta (`reminderEmailEnabled`) |
+| GET | `/api/cron/reminders` | Procesar recordatorios pendientes; header `Authorization: Bearer CRON_SECRET` (respuesta incluye `pushSent` / `pushFailed`) |
+| PATCH | `/api/user/settings` | Preferencias: `reminderEmailEnabled`, `notificationEmail` (vacío = usar correo de cuenta), `notificationPhone` |
+| PATCH | `/api/user/password` | Cambiar contraseña (`currentPassword`, `newPassword`, mín. 8) |
 | GET | `/api/notifications` | Lista avisos (`?limit=`); respuesta `{ items, unreadCount }` |
 | PATCH | `/api/notifications` | Marcar leídas: `{ ids: string[] }` o `{ markAllRead: true }` |
 | GET | `/api/push/vapid-key` | Clave pública VAPID si el servidor tiene push configurado (`VAPID_PUBLIC_KEY` o respaldo `NEXT_PUBLIC_VAPID_PUBLIC_KEY`) |
 | POST | `/api/push/subscribe` | Guardar suscripción push (`endpoint`, `keys.p256dh`, `keys.auth`) |
 | DELETE | `/api/push/subscribe` | Quitar suscripción: cuerpo `{ endpoint }` o `?all=1` para todas |
+| POST | `/api/push/test` | Solo `NODE_ENV=development`: push de prueba al usuario en sesión; requiere VAPID y suscripciones guardadas |
 
 ## Paginación (futuro)
 

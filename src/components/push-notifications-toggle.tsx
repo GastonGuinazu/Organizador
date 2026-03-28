@@ -14,14 +14,17 @@ function urlBase64ToUint8Array(base64String: string) {
 
 type Props = {
   initialSubscriptionCount: number;
+  /** Muestra botón que llama a POST /api/push/test (solo existe en desarrollo). */
+  showDevPushTest?: boolean;
 };
 
-export function PushNotificationsToggle({ initialSubscriptionCount }: Props) {
+export function PushNotificationsToggle({ initialSubscriptionCount, showDevPushTest = false }: Props) {
   const [supported, setSupported] = useState<boolean | null>(null);
   const [serverPush, setServerPush] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [localSubscribed, setLocalSubscribed] = useState(false);
+  const [testBusy, setTestBusy] = useState(false);
 
   const refreshServer = useCallback(async () => {
     const res = await fetch("/api/push/vapid-key");
@@ -101,6 +104,31 @@ export function PushNotificationsToggle({ initialSubscriptionCount }: Props) {
     }
   }
 
+  async function sendDevTest() {
+    setMessage(null);
+    setTestBusy(true);
+    try {
+      const res = await fetch("/api/push/test", { method: "POST" });
+      const j = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        sent?: number;
+        failed?: number;
+        subscriptions?: number;
+      };
+      if (!res.ok) {
+        setMessage(typeof j.error === "string" ? j.error : "No se pudo enviar la prueba.");
+        return;
+      }
+      setMessage(
+        `Prueba enviada: ${j.sent ?? 0} correctas, ${j.failed ?? 0} fallidas (${j.subscriptions ?? 0} suscripciones).`,
+      );
+    } catch {
+      setMessage("No se pudo enviar la prueba.");
+    } finally {
+      setTestBusy(false);
+    }
+  }
+
   async function unsubscribeAll() {
     setMessage(null);
     setBusy(true);
@@ -153,7 +181,17 @@ export function PushNotificationsToggle({ initialSubscriptionCount }: Props) {
             {busy ? "Desactivando…" : "Desactivar notificaciones push"}
           </Button>
         )}
+        {showDevPushTest && hasRemote && serverPush ? (
+          <Button type="button" variant="secondary" onClick={() => void sendDevTest()} disabled={testBusy || busy}>
+            {testBusy ? "Enviando…" : "Enviar notificación de prueba"}
+          </Button>
+        ) : null}
       </div>
+      {showDevPushTest && hasRemote && serverPush ? (
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Solo en desarrollo: <code className="rounded bg-slate-200 px-1 dark:bg-slate-800">POST /api/push/test</code>.
+        </p>
+      ) : null}
       {message ? <p className="text-sm text-slate-700 dark:text-slate-200">{message}</p> : null}
     </div>
   );

@@ -9,6 +9,9 @@ export default async function SettingsPage() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
+      email: true,
+      notificationEmail: true,
+      notificationPhone: true,
       reminderEmailEnabled: true,
       _count: { select: { pushSubscriptions: true } },
     },
@@ -20,12 +23,16 @@ export default async function SettingsPage() {
     <div>
       <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Ajustes de cuenta</h1>
       <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-        Elegí cómo querés recibir recordatorios.
+        Datos para avisos, recordatorios y seguridad de tu cuenta.
       </p>
       <div className="mt-8">
         <SettingsForm
+          accountEmail={user.email}
+          initialNotificationEmail={user.notificationEmail}
+          initialNotificationPhone={user.notificationPhone}
           initialReminderEmailEnabled={user.reminderEmailEnabled}
           pushSubscriptionCount={user._count.pushSubscriptions}
+          showDevPushTest={process.env.NODE_ENV === "development"}
         />
       </div>
     </div>

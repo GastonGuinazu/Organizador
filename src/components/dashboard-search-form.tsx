@@ -1,5 +1,7 @@
-import type { Tag } from "@prisma/client";
+﻿import type { Tag } from "@prisma/client";
 import { Button } from "@/components/ui/button";
+
+type TagOption = Pick<Tag, "id" | "name" | "color">;
 
 type Props = {
   filter: string;
@@ -7,7 +9,7 @@ type Props = {
   tagId?: string;
   calYear?: number;
   calMonth?: number;
-  tags: Tag[];
+  tags: TagOption[];
 };
 
 export function DashboardSearchForm({ filter, q, tagId, calYear, calMonth, tags }: Props) {
@@ -55,9 +57,10 @@ export function DashboardSearchForm({ filter, q, tagId, calYear, calMonth, tags 
           ))}
         </select>
       </div>
-      <Button type="submit" variant="secondary" className="w-full sm:w-auto">
+      <Button type="submit" variant="secondary" className="min-h-11 w-full sm:w-auto">
         Aplicar
       </Button>
     </form>
   );
 }
+

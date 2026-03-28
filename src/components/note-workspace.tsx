@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
@@ -9,6 +9,7 @@ import { collectNoteTreeIds, NoteTree } from "@/components/note-tree";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { NOTE_HTML_TEMPLATES } from "@/lib/note-templates";
+import { writeNotePageCache } from "@/lib/offline-db";
 
 const NoteRichEditor = dynamic(
   () => import("@/components/note-rich-editor").then((m) => ({ default: m.NoteRichEditor })),
@@ -16,7 +17,7 @@ const NoteRichEditor = dynamic(
     ssr: false,
     loading: () => (
       <div className="min-h-[320px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-        Cargando editor…
+        Cargando editorâ€¦
       </div>
     ),
   },
@@ -137,9 +138,16 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
         const res = await fetch(`/api/note-pages/${pageId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: title.trim() || "Sin título", body }),
+          body: JSON.stringify({ title: title.trim() || "Sin tÃ­tulo", body }),
         });
-        if (!res.ok) {
+        if (res.ok) {
+          void writeNotePageCache({
+            id: pageId,
+            title: title.trim() || "Sin tÃ­tulo",
+            body,
+            parentId: initialPage.parentId,
+          });
+        } else {
           const data = (await res.json().catch(() => ({}))) as { error?: string };
           setSaveError(data.error ?? "No se pudo guardar");
         }
@@ -150,13 +158,13 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
       }
     }, 650);
     return () => clearTimeout(t);
-  }, [title, body, pageId, readOnly]);
+  }, [title, body, pageId, readOnly, initialPage.parentId]);
 
   async function createChild() {
     const res = await fetch("/api/note-pages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: "Sin título", parentId: pageId }),
+      body: JSON.stringify({ title: "Sin tÃ­tulo", parentId: pageId }),
     });
     if (!res.ok) return;
     const created = (await res.json()) as { id: string };
@@ -169,7 +177,7 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
     const res = await fetch("/api/note-pages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: "Sin título" }),
+      body: JSON.stringify({ title: "Sin tÃ­tulo" }),
     });
     if (!res.ok) return;
     const created = (await res.json()) as { id: string };
@@ -181,7 +189,7 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
   async function removePage() {
     if (
       !window.confirm(
-        "¿Eliminar esta nota y todo lo que tiene dentro? Esta acción no se puede deshacer.",
+        "Â¿Eliminar esta nota y todo lo que tiene dentro? Esta acciÃ³n no se puede deshacer.",
       )
     ) {
       return;
@@ -222,7 +230,7 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
         type="search"
         value={searchQ}
         onChange={(e) => setSearchQ(e.target.value)}
-        placeholder="Título o contenido…"
+        placeholder="TÃ­tulo o contenidoâ€¦"
         className="min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/25 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
         autoComplete="off"
       />
@@ -235,7 +243,7 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
                 className="block truncate rounded-md px-2 py-1.5 text-teal-800 hover:bg-teal-50 dark:text-teal-300 dark:hover:bg-teal-950/40"
                 onClick={() => setSidebarOpen(false)}
               >
-                {m.title.trim() || "Sin título"}
+                {m.title.trim() || "Sin tÃ­tulo"}
               </Link>
             </li>
           ))}
@@ -254,12 +262,12 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
           Nueva principal
         </Button>
         <Button type="button" variant="secondary" className="min-h-11 text-xs sm:text-sm" onClick={createChild}>
-          Nueva subpágina
+          Nueva subpÃ¡gina
         </Button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
         {tree.length === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">No hay notas todavía.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">No hay notas todavÃ­a.</p>
         ) : (
           <NoteTree nodes={tree} currentId={pageId} depth={0} expanded={expanded} toggle={toggle} />
         )}
@@ -272,7 +280,7 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Tus notas</h1>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Organizá resúmenes, materias y lo que necesites; todo en páginas anidadas.
+          OrganizÃ¡ resÃºmenes, materias y lo que necesites; todo en pÃ¡ginas anidadas.
         </p>
       </div>
 
@@ -284,12 +292,12 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
           onClick={() => setSidebarOpen(true)}
           aria-expanded={sidebarOpen}
         >
-          Ver árbol
+          Ver Ã¡rbol
         </Button>
       </div>
 
       {sidebarOpen ? (
-        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Árbol de notas">
+        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Ãrbol de notas">
           <button
             type="button"
             className="absolute inset-0 bg-black/40"
@@ -298,7 +306,7 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
           />
           <div className="absolute left-0 top-0 flex h-full w-[min(100%,20rem)] flex-col border-r border-slate-200 bg-white p-4 shadow-xl dark:border-slate-800 dark:bg-slate-900">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Tus páginas</span>
+              <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Tus pÃ¡ginas</span>
               <Button type="button" variant="ghost" className="min-h-11 min-w-11 px-2" onClick={() => setSidebarOpen(false)}>
                 Cerrar
               </Button>
@@ -324,10 +332,10 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
                   /
                 </span>
                 {i === initialBreadcrumbs.length - 1 ? (
-                  <span className="font-medium text-slate-900 dark:text-slate-100">{crumb.title || "Sin título"}</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">{crumb.title || "Sin tÃ­tulo"}</span>
                 ) : (
                   <Link href={`/dashboard/notes/${crumb.id}`} className="hover:text-teal-700 dark:hover:text-teal-400">
-                    {crumb.title || "Sin título"}
+                    {crumb.title || "Sin tÃ­tulo"}
                   </Link>
                 )}
               </span>
@@ -337,7 +345,7 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
           <div className="space-y-4">
             <div className="flex flex-col gap-1">
               <label htmlFor="note-title" className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                Título
+                TÃ­tulo
               </label>
               <input
                 id="note-title"
@@ -375,7 +383,7 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
                   }}
                 >
                   <option value="" disabled>
-                    Elegir…
+                    Elegirâ€¦
                   </option>
                   {NOTE_HTML_TEMPLATES.map((tpl) => (
                     <option key={tpl.id} value={tpl.id}>
@@ -391,8 +399,10 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
                 Contenido
               </span>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Podés insertar imagen, foto con la cámara, audio y video en el lugar del texto. Las notas en texto plano
-                siguen mostrándose igual; al editarlas pasan a formato enriquecido.
+                UsÃ¡ los menÃºs Foto, Audio y Video: en cada uno podÃ©s elegir un archivo o grabar (en la computadora se abre
+                un grabador en el navegador; en el celular suele abrirse la cÃ¡mara o el micrÃ³fono del sistema). En solo
+                lectura, tocÃ¡ o hacÃ© clic en una imagen para verla ampliada; al editar, doble clic en la imagen. Las notas
+                en texto plano siguen mostrÃ¡ndose igual; al editarlas pasan a formato enriquecido.
               </p>
               <div aria-labelledby="note-body-label">
                 <NoteRichEditor
@@ -417,7 +427,7 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
               {readOnly ? (
                 <span className="text-sm text-slate-500 dark:text-slate-400">Modo solo lectura: no se guardan cambios.</span>
               ) : saving ? (
-                <span className="text-sm text-slate-500 dark:text-slate-400">Guardando…</span>
+                <span className="text-sm text-slate-500 dark:text-slate-400">Guardandoâ€¦</span>
               ) : (
                 <span className="text-sm text-slate-500 dark:text-slate-400">Los cambios se guardan solos</span>
               )}
@@ -429,3 +439,4 @@ export function NoteWorkspace({ tree: initialTree, page: initialPage, breadcrumb
     </div>
   );
 }
+

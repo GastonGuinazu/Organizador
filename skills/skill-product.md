@@ -19,13 +19,13 @@
 
 ## Post-MVP en producto (implementado en código)
 
+- **Capacitor** (Android / iOS): envoltorio nativo que puede cargar la misma URL de producción que la web; despliegue web vs nuevo binario en tiendas: ver [skill-deploy-capacitor.md](skill-deploy-capacitor.md).
 - **Calendario mensual** (columna en `/dashboard`, ~**1/4** del ancho en escritorio, lista ~**3/4**; modo `dense`): grilla con **un punto** por día con actividades; color = etiqueta con **`Tag.createdAt` más antiguo** entre las presentes ese día; **`+N`** = actividades adicionales (`N = total − 1`). Hover: títulos. Clic: panel con detalle. Bloque **sin fecha** con enlaces y acceso al filtro lista. Navegación mes / **Hoy**. Parámetros `calYear` / `calMonth` conservan el mes al filtrar o buscar. Ruta `/dashboard/calendar` redirige al tablero. Cada ítem se ubica en el día según `dueAt` + `Item.timezone` (día civil).
 - **Búsqueda** en lista: texto en título y descripción; **filtro por etiqueta**.
 - **Reprogramar**: botones que mueven `dueAt` (+1 h, mañana, +7 días) y recalculan recordatorios no enviados.
 
 ## Fuera de v1 (no-go explícito)
 
-- App nativa / Capacitor (evaluar en fase posterior).
 - Compartir listas entre usuarios.
 - Sincronización calendario externo (Google/ICS).
 

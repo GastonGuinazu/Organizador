@@ -6,8 +6,23 @@ export const registerSchema = z.object({
   name: z.string().max(120).optional(),
 });
 
-export const userSettingsPatchSchema = z.object({
-  reminderEmailEnabled: z.boolean().optional(),
+export const userSettingsPatchSchema = z
+  .object({
+    reminderEmailEnabled: z.boolean().optional(),
+    notificationEmail: z.union([z.string().email(), z.literal("")]).optional(),
+    notificationPhone: z.union([z.string().max(40), z.literal("")]).optional(),
+  })
+  .refine(
+    (d) =>
+      d.reminderEmailEnabled !== undefined ||
+      d.notificationEmail !== undefined ||
+      d.notificationPhone !== undefined,
+    { message: "Nada que actualizar" },
+  );
+
+export const userPasswordPatchSchema = z.object({
+  currentPassword: z.string().min(1, "Indicá tu contraseña actual"),
+  newPassword: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
 });
 
 export const notificationsPatchSchema = z.object({

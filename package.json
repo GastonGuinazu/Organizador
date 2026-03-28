@@ -14,9 +14,19 @@
     "validate:pwa": "node scripts/validate-pwa-manifest.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "cap:sync": "npx cap sync",
+    "cap:open:android": "npx cap open android",
+    "cap:open:ios": "npx cap open ios",
+    "vapid:keys": "npx web-push generate-vapid-keys",
+    "cron:reminders": "node scripts/trigger-cron-reminders.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/ios": "^8.3.0",
+    "@capacitor/network": "^8.0.1",
     "@prisma/client": "^5.22.0",
     "@tiptap/extension-color": "^3.21.0",
     "@tiptap/extension-font-family": "^3.21.0",
@@ -27,6 +37,7 @@
     "@tiptap/react": "^3.21.0",
     "@tiptap/starter-kit": "^3.21.0",
     "bcryptjs": "^3.0.3",
+    "dexie": "^4.4.1",
     "isomorphic-dompurify": "^3.7.1",
     "luxon": "^3.7.2",
     "next": "15.5.14",

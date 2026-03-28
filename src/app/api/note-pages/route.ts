@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/api-auth";
 import { createNotePageSchema } from "@/lib/validators";
@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   const tree = buildNotePageTree(rows);
 
   if (!q) {
-    return NextResponse.json({ tree });
+    return NextResponse.json({ tree, rows });
   }
 
   const matches = await prisma.notePage.findMany({
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
     take: 25,
   });
 
-  return NextResponse.json({ tree, matches });
+  return NextResponse.json({ tree, rows, matches });
 }
 
 export async function POST(req: Request) {
@@ -91,3 +91,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json(page, { status: 201 });
 }
+
+

@@ -1,8 +1,7 @@
 import { mkdir, unlink, writeFile } from "fs/promises";
 import path from "path";
 
-/** Límite por archivo (subida de imagen/audio/video en notas). */
-export const NOTE_MEDIA_MAX_BYTES = 25 * 1024 * 1024;
+export { NOTE_MEDIA_MAX_BYTES } from "./note-media-constants";
 
 const ALLOWED = new Map<string, readonly string[]>([
   ["image", ["image/jpeg", "image/png", "image/gif", "image/webp"]],

@@ -1,8 +1,7 @@
 import { Resend } from "resend";
-import webpush from "web-push";
 import { prisma } from "@/lib/prisma";
 import { escapeHtml } from "@/lib/escape-html";
-import { getVapidPublicKey } from "@/lib/vapid-env";
+import { configureWebPush, sendPushToSubscriptions } from "@/lib/web-push-server";
 
 export type ProcessRemindersResult = {
   processed: number;
@@ -19,15 +18,6 @@ function formatDue(item: { dueAt: Date | null; allDay: boolean }): string {
     dateStyle: "medium",
     timeStyle: item.allDay ? undefined : "short",
   }).format(item.dueAt);
-}
-
-function configureWebPush(): boolean {
-  const pub = getVapidPublicKey();
-  const priv = process.env.VAPID_PRIVATE_KEY?.trim();
-  const subject = process.env.VAPID_SUBJECT?.trim();
-  if (!pub || !priv || !subject) return false;
-  webpush.setVapidDetails(subject, pub, priv);
-  return true;
 }
 
 export async function processDueReminders(now = new Date()): Promise<ProcessRemindersResult> {
@@ -64,9 +54,10 @@ export async function processDueReminders(now = new Date()): Promise<ProcessRemi
     const dueLine = `Vence: ${due}.`;
 
     if (user.reminderEmailEnabled && resend) {
+      const toEmail = user.notificationEmail?.trim() || user.email;
       const { error } = await resend.emails.send({
         from: from!,
-        to: user.email,
+        to: toEmail,
         subject: `Recordatorio: ${item.title}`,
         html: `<p>Tu actividad <strong>${escapeHtml(item.title)}</strong> vence: ${escapeHtml(due)}.</p>
           ${item.description ? `<p>${escapeHtml(item.description).slice(0, 2000)}</p>` : ""}`,
@@ -99,30 +90,13 @@ export async function processDueReminders(now = new Date()): Promise<ProcessRemi
       const subs = await prisma.pushSubscription.findMany({
         where: { userId: user.id },
       });
-      const payload = JSON.stringify({
+      const { sent, failed } = await sendPushToSubscriptions(subs, {
         title: `Recordatorio: ${item.title}`,
         body: dueLine,
         url: `/dashboard/items/${item.id}`,
       });
-      for (const s of subs) {
-        try {
-          await webpush.sendNotification(
-            {
-              endpoint: s.endpoint,
-              keys: { p256dh: s.p256dh, auth: s.auth },
-            },
-            payload,
-            { TTL: 86_400 },
-          );
-          pushSent++;
-        } catch (e: unknown) {
-          pushFailed++;
-          const status = typeof e === "object" && e !== null && "statusCode" in e ? (e as { statusCode?: number }).statusCode : undefined;
-          if (status === 410) {
-            await prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
-          }
-        }
-      }
+      pushSent += sent;
+      pushFailed += failed;
     }
   }
 
