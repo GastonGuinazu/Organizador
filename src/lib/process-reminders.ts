@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import webpush from "web-push";
 import { prisma } from "@/lib/prisma";
 import { escapeHtml } from "@/lib/escape-html";
+import { getVapidPublicKey } from "@/lib/vapid-env";
 
 export type ProcessRemindersResult = {
   processed: number;
@@ -21,7 +22,7 @@ function formatDue(item: { dueAt: Date | null; allDay: boolean }): string {
 }
 
 function configureWebPush(): boolean {
-  const pub = process.env.VAPID_PUBLIC_KEY?.trim();
+  const pub = getVapidPublicKey();
   const priv = process.env.VAPID_PRIVATE_KEY?.trim();
   const subject = process.env.VAPID_SUBJECT?.trim();
   if (!pub || !priv || !subject) return false;

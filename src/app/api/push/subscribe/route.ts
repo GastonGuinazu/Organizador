@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { isVapidConfiguredForSubscribe } from "@/lib/vapid-env";
 
 const bodySchema = z.object({
   endpoint: z.string().url(),
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  if (!process.env.VAPID_PUBLIC_KEY?.trim() || !process.env.VAPID_PRIVATE_KEY?.trim()) {
+  if (!isVapidConfiguredForSubscribe()) {
     return NextResponse.json({ error: "Push no configurado" }, { status: 503 });
   }
 

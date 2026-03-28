@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { getVapidPublicKey } from "@/lib/vapid-env";
 
 /** Public VAPID key for Web Push subscription (client). */
 export async function GET() {
@@ -8,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const publicKey = process.env.VAPID_PUBLIC_KEY?.trim();
+  const publicKey = getVapidPublicKey();
   if (!publicKey) {
     return NextResponse.json({ error: "Push no configurado en el servidor" }, { status: 503 });
   }

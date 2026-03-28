@@ -40,4 +40,4 @@
 
 - `User.reminderEmailEnabled` (default `true`): si es `false`, el cron no intenta enviar correo por ese usuario; igual crea `NotificationEvent` y marca `Reminder.sentAt`.
 - `NotificationEvent`: historial in-app por recordatorio procesado (`channel` típico `reminder`).
-- `PushSubscription`: endpoint + claves por usuario/dispositivo para Web Push (VAPID en servidor).
+- `PushSubscription`: endpoint + claves por usuario/dispositivo para Web Push (VAPID en servidor: `VAPID_PUBLIC_KEY` o `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, más `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT`).

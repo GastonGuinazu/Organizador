@@ -34,7 +34,7 @@
 | PATCH | `/api/user/settings` | Preferencias de cuenta (`reminderEmailEnabled`) |
 | GET | `/api/notifications` | Lista avisos (`?limit=`); respuesta `{ items, unreadCount }` |
 | PATCH | `/api/notifications` | Marcar leídas: `{ ids: string[] }` o `{ markAllRead: true }` |
-| GET | `/api/push/vapid-key` | Clave pública VAPID si el servidor tiene push configurado |
+| GET | `/api/push/vapid-key` | Clave pública VAPID si el servidor tiene push configurado (`VAPID_PUBLIC_KEY` o respaldo `NEXT_PUBLIC_VAPID_PUBLIC_KEY`) |
 | POST | `/api/push/subscribe` | Guardar suscripción push (`endpoint`, `keys.p256dh`, `keys.auth`) |
 | DELETE | `/api/push/subscribe` | Quitar suscripción: cuerpo `{ endpoint }` o `?all=1` para todas |
 
