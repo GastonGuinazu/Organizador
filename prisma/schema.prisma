@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String               @id @default(cuid())
+  email                String               @unique
+  name                 String?
+  passwordHash         String
+  timezone             String               @default("UTC")
+  reminderEmailEnabled Boolean              @default(true)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  items                Item[]
+  tags                 Tag[]
+  notePages            NotePage[]
+  noteMedia            NoteMedia[]
+  notificationEvents   NotificationEvent[]
+  pushSubscriptions    PushSubscription[]
+}
+
+model NotePage {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    NotePage?    @relation("NoteHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children  NotePage[]   @relation("NoteHierarchy")
+  title     String
+  body      String       @default("")
+  sortOrder Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  media     NoteMedia[]
+
+  @@index([userId, parentId, sortOrder])
+}
+
+model NoteMedia {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notePageId String
+  notePage   NotePage @relation(fields: [notePageId], references: [id], onDelete: Cascade)
+  mimeType   String
+  sizeBytes  Int
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([notePageId])
+}
+
+model Item {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  description     String          @default("")
+  dueAt           DateTime?
+  allDay          Boolean         @default(false)
+  timezone        String          @default("UTC")
+  completedAt     DateTime?
+  archived        Boolean         @default(false)
+  recurrenceRule  String          @default("NONE")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  reminders       Reminder[]
+  checklistItems  ChecklistItem[]
+  itemTags            ItemTag[]
+  notificationEvents  NotificationEvent[]
+
+  @@index([userId, archived, dueAt])
+}
+
+model Reminder {
+  id            String    @id @default(cuid())
+  itemId        String
+  item          Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  offsetMinutes Int
+  fireAt        DateTime?
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([fireAt, sentAt])
+}
+
+model NotificationEvent {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId     String
+  item       Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  reminderId String?
+  channel    String
+  title      String
+  body       String?
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+}
+
+model ChecklistItem {
+  id        String   @id @default(cuid())
+  itemId    String
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  title     String
+  done      Boolean  @default(false)
+  sortOrder Int      @default(0)
+
+  @@index([itemId, sortOrder])
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  color     String?
+  createdAt DateTime  @default(now())
+  itemTags  ItemTag[]
+
+  @@unique([userId, name])
+}
+
+model ItemTag {
+  itemId String
+  tagId  String
+  item   Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, tagId])
+}

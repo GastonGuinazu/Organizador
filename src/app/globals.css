@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -12,15 +19,98 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  overflow-x: clip;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  overflow-x: clip;
+}
+
+/**
+ * Márgenes útiles en móviles con notch y en PWA: combina 1rem con safe-area.
+ */
+.app-safe-x {
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+}
+
+.app-safe-b {
+  padding-bottom: max(2rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* TipTap / ProseMirror — listas y citas en notas enriquecidas */
+.note-rich-editor .ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+.note-rich-editor .ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+.note-rich-editor .ProseMirror li {
+  margin: 0.15rem 0;
+}
+.note-rich-editor .ProseMirror li p {
+  margin: 0;
+}
+.note-rich-editor .ProseMirror blockquote {
+  border-left: 3px solid rgb(148 163 184);
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  color: rgb(71 85 105);
+}
+.dark .note-rich-editor .ProseMirror blockquote {
+  border-left-color: rgb(71 85 105);
+  color: rgb(148 163 184);
+}
+.note-rich-editor .ProseMirror h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0.75rem 0 0.35rem;
+}
+.note-rich-editor .ProseMirror h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0.65rem 0 0.3rem;
+}
+.note-rich-editor .ProseMirror p {
+  margin: 0.35rem 0;
+}
+.note-rich-editor .ProseMirror mark {
+  border-radius: 0.125rem;
+  padding: 0.05em 0;
+}
+
+.note-rich-editor .ProseMirror img.note-embed-img {
+  display: block;
+  height: auto;
+  margin: 0.5rem 0;
+}
+
+.note-rich-editor .ProseMirror video.note-embed-video,
+.note-rich-editor .ProseMirror audio.note-embed-audio {
+  display: block;
+  margin: 0.5rem 0;
+}
+
+/* Select de fuente: evita texto “lavado” / transparente en combobox nativos (móvil, dark) */
+.note-rich-editor .note-rich-editor-toolbar-select {
+  color-scheme: light;
+}
+.dark .note-rich-editor .note-rich-editor-toolbar-select {
+  color-scheme: dark;
+}
+.note-rich-editor .note-rich-editor-toolbar-select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+.dark .note-rich-editor .note-rich-editor-toolbar-select option {
+  background-color: #020617;
+  color: #f8fafc;
 }
