@@ -6,19 +6,53 @@ export const registerSchema = z.object({
   name: z.string().max(120).optional(),
 });
 
+const hhmmOrEmpty = z.union([
+  z.literal(""),
+  z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/, "Usá formato HH:mm (24 h)"),
+]);
+
 export const userSettingsPatchSchema = z
   .object({
     reminderEmailEnabled: z.boolean().optional(),
+    reminderSmsEnabled: z.boolean().optional(),
     notificationEmail: z.union([z.string().email(), z.literal("")]).optional(),
     notificationPhone: z.union([z.string().max(40), z.literal("")]).optional(),
+    quietHoursStart: hhmmOrEmpty.optional(),
+    quietHoursEnd: hhmmOrEmpty.optional(),
   })
   .refine(
     (d) =>
       d.reminderEmailEnabled !== undefined ||
+      d.reminderSmsEnabled !== undefined ||
       d.notificationEmail !== undefined ||
-      d.notificationPhone !== undefined,
+      d.notificationPhone !== undefined ||
+      d.quietHoursStart !== undefined ||
+      d.quietHoursEnd !== undefined,
     { message: "Nada que actualizar" },
-  );
+  )
+  .superRefine((d, ctx) => {
+    const hasS = d.quietHoursStart !== undefined;
+    const hasE = d.quietHoursEnd !== undefined;
+    if (hasS !== hasE) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Horario silencioso: enviá inicio y fin en el mismo guardado.",
+        path: ["quietHoursEnd"],
+      });
+      return;
+    }
+    if (hasS && hasE) {
+      const s = (d.quietHoursStart ?? "").trim();
+      const e = (d.quietHoursEnd ?? "").trim();
+      if (Boolean(s) !== Boolean(e)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Completá inicio y fin, o vaciá ambos.",
+          path: ["quietHoursEnd"],
+        });
+      }
+    }
+  });
 
 export const userPasswordPatchSchema = z.object({
   currentPassword: z.string().min(1, "Indicá tu contraseña actual"),

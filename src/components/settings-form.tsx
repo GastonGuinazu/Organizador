@@ -10,30 +10,48 @@ import { PushNotificationsToggle } from "@/components/push-notifications-toggle"
 
 type Props = {
   accountEmail: string;
+  accountTimezone: string;
   initialNotificationEmail: string | null;
   initialNotificationPhone: string | null;
   initialReminderEmailEnabled: boolean;
+  initialReminderSmsEnabled: boolean;
+  initialQuietHoursStart: string | null;
+  initialQuietHoursEnd: string | null;
   pushSubscriptionCount: number;
-  /** Solo true en servidor de desarrollo: muestra envío de push de prueba */
   showDevPushTest?: boolean;
+  showDevEmailTest?: boolean;
 };
 
 export function SettingsForm({
   accountEmail,
+  accountTimezone,
   initialNotificationEmail,
   initialNotificationPhone,
   initialReminderEmailEnabled,
+  initialReminderSmsEnabled,
+  initialQuietHoursStart,
+  initialQuietHoursEnd,
   pushSubscriptionCount,
   showDevPushTest = false,
+  showDevEmailTest = false,
 }: Props) {
   const [reminderEmailEnabled, setReminderEmailEnabled] = useState(initialReminderEmailEnabled);
+  const [reminderSmsEnabled, setReminderSmsEnabled] = useState(initialReminderSmsEnabled);
   const [notificationEmail, setNotificationEmail] = useState(initialNotificationEmail ?? "");
   const [notificationPhone, setNotificationPhone] = useState(initialNotificationPhone ?? "");
+  const [quietHoursStart, setQuietHoursStart] = useState(initialQuietHoursStart ?? "");
+  const [quietHoursEnd, setQuietHoursEnd] = useState(initialQuietHoursEnd ?? "");
   const [savingPrefs, setSavingPrefs] = useState(false);
+  const [savingSms, setSavingSms] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
+  const [savingQuiet, setSavingQuiet] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [prefNote, setPrefNote] = useState<string | null>(null);
+  const [smsNote, setSmsNote] = useState<string | null>(null);
   const [contactNote, setContactNote] = useState<string | null>(null);
+  const [quietNote, setQuietNote] = useState<string | null>(null);
+  const [emailTestBusy, setEmailTestBusy] = useState(false);
+  const [emailTestNote, setEmailTestNote] = useState<string | null>(null);
   const [passwordFeedback, setPasswordFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -60,6 +78,27 @@ export function SettingsForm({
     }
   }
 
+  async function saveSmsPref(next: boolean) {
+    setSavingSms(true);
+    setSmsNote(null);
+    try {
+      const res = await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reminderSmsEnabled: next }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setSmsNote(typeof j.error === "string" ? j.error : "No se pudo guardar.");
+        return;
+      }
+      setReminderSmsEnabled(next);
+      setSmsNote("Preferencia guardada.");
+    } finally {
+      setSavingSms(false);
+    }
+  }
+
   async function saveContact(e: React.FormEvent) {
     e.preventDefault();
     setSavingContact(true);
@@ -81,6 +120,48 @@ export function SettingsForm({
       setContactNote("Datos de contacto guardados.");
     } finally {
       setSavingContact(false);
+    }
+  }
+
+  async function saveQuiet(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingQuiet(true);
+    setQuietNote(null);
+    try {
+      const res = await fetch("/api/user/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          quietHoursStart: quietHoursStart.trim() === "" ? "" : quietHoursStart.trim(),
+          quietHoursEnd: quietHoursEnd.trim() === "" ? "" : quietHoursEnd.trim(),
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setQuietNote(typeof j.error === "string" ? j.error : "No se pudo guardar.");
+        return;
+      }
+      setQuietNote("Horario silencioso guardado.");
+    } finally {
+      setSavingQuiet(false);
+    }
+  }
+
+  async function sendDevEmailTest() {
+    setEmailTestNote(null);
+    setEmailTestBusy(true);
+    try {
+      const res = await fetch("/api/email/test", { method: "POST" });
+      const j = (await res.json().catch(() => ({}))) as { error?: string; to?: string };
+      if (!res.ok) {
+        setEmailTestNote(typeof j.error === "string" ? j.error : "No se pudo enviar.");
+        return;
+      }
+      setEmailTestNote(`Correo de prueba enviado a ${j.to ?? "tu correo"}.`);
+    } catch {
+      setEmailTestNote("No se pudo enviar.");
+    } finally {
+      setEmailTestBusy(false);
     }
   }
 
@@ -143,20 +224,18 @@ export function SettingsForm({
             onChange={(e) => setNotificationEmail(e.target.value)}
           />
           <Input
-            label="Teléfono (opcional)"
+            label="Teléfono para SMS (opcional)"
             name="notificationPhone"
             type="tel"
             autoComplete="tel"
-            placeholder="Ej. +54 9 11 1234-5678"
+            placeholder="E.164, ej. +5491112345678"
             maxLength={40}
             value={notificationPhone}
             onChange={(e) => setNotificationPhone(e.target.value)}
           />
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            El correo opcional de arriba es el destino de los recordatorios por email cuando tenés activada la casilla de
-            &quot;Enviar recordatorios a mi correo&quot;. El teléfono solo se guarda en la cuenta:{" "}
-            <span className="font-medium">todavía no enviamos SMS</span>; cuando haya un proveedor configurado, usaremos
-            este número.
+            El correo opcional es el destino de los recordatorios por email si tenés activada esa opción. El teléfono se
+            usa para SMS cuando activás la opción de abajo y el servidor tiene Twilio configurado.
           </p>
           <Button type="submit" disabled={savingContact}>
             {savingContact ? "Guardando…" : "Guardar correo y teléfono"}
@@ -170,12 +249,52 @@ export function SettingsForm({
       </Card>
 
       <Card className="p-6">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Horario silencioso</h2>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          En este rango (según tu zona{" "}
+          <span className="font-mono text-xs text-slate-500 dark:text-slate-400">{accountTimezone}</span>) no enviamos
+          correo, push ni SMS por recordatorios; se pospone al siguiente ciclo del servidor cuando ya no sea horario
+          silencioso.
+        </p>
+        <form onSubmit={saveQuiet} className="mt-4 flex flex-col gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Desde (HH:mm)"
+              name="quietHoursStart"
+              type="time"
+              value={quietHoursStart}
+              onChange={(e) => setQuietHoursStart(e.target.value)}
+            />
+            <Input
+              label="Hasta (HH:mm)"
+              name="quietHoursEnd"
+              type="time"
+              value={quietHoursEnd}
+              onChange={(e) => setQuietHoursEnd(e.target.value)}
+            />
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Dejá ambos vacíos y guardá para desactivar. Para cruzar medianoche, poné por ejemplo 22:00 → 07:00.
+          </p>
+          <Button type="submit" disabled={savingQuiet}>
+            {savingQuiet ? "Guardando…" : "Guardar horario silencioso"}
+          </Button>
+        </form>
+        {quietNote ? (
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-400" role="status">
+            {quietNote}
+          </p>
+        ) : null}
+      </Card>
+
+      <Card className="p-6">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Recordatorios por correo</h2>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
           Si está activado y el servidor tiene correo configurado (Resend), te enviamos un email al correo de
           recordatorios de la primera tarjeta o, si lo dejaste vacío, al correo de tu cuenta. El envío usa el mismo
           proceso programado que los push: el servidor revisa los recordatorios vencidos cada cierto tiempo (en Vercel,
-          según el cron del proyecto), no en el segundo exacto.
+          según el cron del proyecto), no en el segundo exacto. Si el correo falla, igual se registra el aviso en la app
+          y se envía el push (si aplica).
         </p>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
           Igual podés ver los avisos dentro de la app en <span className="font-medium">Avisos</span>.
@@ -195,6 +314,49 @@ export function SettingsForm({
         {prefNote ? (
           <p className="mt-3 text-sm text-slate-600 dark:text-slate-400" role="status">
             {prefNote}
+          </p>
+        ) : null}
+        {showDevEmailTest ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
+            <Button type="button" variant="secondary" onClick={() => void sendDevEmailTest()} disabled={emailTestBusy}>
+              {emailTestBusy ? "Enviando…" : "Enviar correo de prueba"}
+            </Button>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              Solo desarrollo — <code className="rounded bg-slate-200 px-1 dark:bg-slate-800">POST /api/email/test</code>
+            </span>
+          </div>
+        ) : null}
+        {emailTestNote ? (
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400" role="status">
+            {emailTestNote}
+          </p>
+        ) : null}
+      </Card>
+
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Recordatorios por SMS</h2>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          Requiere que el administrador configure{" "}
+          <code className="rounded bg-slate-200 px-1 text-xs dark:bg-slate-800">TWILIO_ACCOUNT_SID</code>,{" "}
+          <code className="rounded bg-slate-200 px-1 text-xs dark:bg-slate-800">TWILIO_AUTH_TOKEN</code> y{" "}
+          <code className="rounded bg-slate-200 px-1 text-xs dark:bg-slate-800">TWILIO_FROM_NUMBER</code> en el servidor.
+          Usamos el teléfono de la primera tarjeta (formato internacional recomendado).
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-800 dark:text-slate-100">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+              checked={reminderSmsEnabled}
+              disabled={savingSms}
+              onChange={(e) => void saveSmsPref(e.target.checked)}
+            />
+            Enviar recordatorios por SMS
+          </label>
+        </div>
+        {smsNote ? (
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-400" role="status">
+            {smsNote}
           </p>
         ) : null}
       </Card>

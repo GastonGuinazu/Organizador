@@ -38,8 +38,10 @@
 
 ## Preferencias y avisos
 
-- `User.reminderEmailEnabled` (default `true`): si es `false`, el cron no intenta enviar correo por ese usuario; igual crea `NotificationEvent` y marca `Reminder.sentAt`.
+- `User.reminderEmailEnabled` (default `true`): si es `false`, el cron no envía correo; igual crea `NotificationEvent`, push/SMS si aplica, y marca `Reminder.sentAt`. Si Resend falla, se cuenta `skippedEmailErrors` pero el flujo sigue (in-app + push).
+- `User.reminderSmsEnabled` (default `false`): si es `true`, teléfono definido y Twilio configurado en servidor, el cron envía SMS.
 - `User.notificationEmail` (opcional): destino de recordatorios por email; si es null, se usa `User.email`.
-- `User.notificationPhone` (opcional): guardado para futuros canales (p. ej. SMS).
+- `User.notificationPhone` (opcional): SMS (E.164 recomendado) cuando SMS está activo y Twilio existe.
+- `User.quietHoursStart` / `User.quietHoursEnd` (opcional, `HH:mm`): ventana en `User.timezone` donde no se envían email, push ni SMS; el recordatorio queda pendiente hasta una corrida fuera de la ventana.
 - `NotificationEvent`: historial in-app por recordatorio procesado (`channel` típico `reminder`).
 - `PushSubscription`: endpoint + claves por usuario/dispositivo para Web Push (VAPID en servidor: `VAPID_PUBLIC_KEY` o `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, más `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT`).

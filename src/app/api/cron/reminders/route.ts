@@ -12,10 +12,13 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     processed: result.processed,
+    deferredQuietHours: result.deferredQuietHours,
     emailsSent: result.emailsSent,
     skippedEmailErrors: result.skippedEmailErrors,
     pushSent: result.pushSent,
     pushFailed: result.pushFailed,
+    smsSent: result.smsSent,
+    smsFailed: result.smsFailed,
     mode: result.mode,
   });
 }

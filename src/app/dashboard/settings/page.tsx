@@ -10,9 +10,13 @@ export default async function SettingsPage() {
     where: { id: session.user.id },
     select: {
       email: true,
+      timezone: true,
       notificationEmail: true,
       notificationPhone: true,
       reminderEmailEnabled: true,
+      reminderSmsEnabled: true,
+      quietHoursStart: true,
+      quietHoursEnd: true,
       _count: { select: { pushSubscriptions: true } },
     },
   });
@@ -28,11 +32,16 @@ export default async function SettingsPage() {
       <div className="mt-8">
         <SettingsForm
           accountEmail={user.email}
+          accountTimezone={user.timezone}
           initialNotificationEmail={user.notificationEmail}
           initialNotificationPhone={user.notificationPhone}
           initialReminderEmailEnabled={user.reminderEmailEnabled}
+          initialReminderSmsEnabled={user.reminderSmsEnabled}
+          initialQuietHoursStart={user.quietHoursStart}
+          initialQuietHoursEnd={user.quietHoursEnd}
           pushSubscriptionCount={user._count.pushSubscriptions}
           showDevPushTest={process.env.NODE_ENV === "development"}
+          showDevEmailTest={process.env.NODE_ENV === "development"}
         />
       </div>
     </div>

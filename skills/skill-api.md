@@ -30,8 +30,8 @@
 | GET | `/api/note-pages/[id]` | Detalle de una página |
 | PATCH | `/api/note-pages/[id]` | Actualizar título, cuerpo, `parentId`, `sortOrder` |
 | DELETE | `/api/note-pages/[id]` | Eliminar página (cascade a subpáginas) |
-| GET | `/api/cron/reminders` | Procesar recordatorios pendientes; header `Authorization: Bearer CRON_SECRET` (respuesta incluye `pushSent` / `pushFailed`) |
-| PATCH | `/api/user/settings` | Preferencias: `reminderEmailEnabled`, `notificationEmail` (vacío = usar correo de cuenta), `notificationPhone` |
+| GET | `/api/cron/reminders` | Procesar recordatorios pendientes; header `Authorization: Bearer CRON_SECRET` (respuesta: `processed`, `deferredQuietHours`, `emailsSent`, `skippedEmailErrors`, `pushSent`, `pushFailed`, `smsSent`, `smsFailed`, `mode`) |
+| PATCH | `/api/user/settings` | Preferencias: `reminderEmailEnabled`, `reminderSmsEnabled`, `notificationEmail`, `notificationPhone`, `quietHoursStart` / `quietHoursEnd` (juntos, `HH:mm` o vacíos; horario en `User.timezone`) |
 | PATCH | `/api/user/password` | Cambiar contraseña (`currentPassword`, `newPassword`, mín. 8) |
 | GET | `/api/notifications` | Lista avisos (`?limit=`); respuesta `{ items, unreadCount }` |
 | PATCH | `/api/notifications` | Marcar leídas: `{ ids: string[] }` o `{ markAllRead: true }` |
@@ -39,6 +39,7 @@
 | POST | `/api/push/subscribe` | Guardar suscripción push (`endpoint`, `keys.p256dh`, `keys.auth`) |
 | DELETE | `/api/push/subscribe` | Quitar suscripción: cuerpo `{ endpoint }` o `?all=1` para todas |
 | POST | `/api/push/test` | Solo `NODE_ENV=development`: push de prueba al usuario en sesión; requiere VAPID y suscripciones guardadas |
+| POST | `/api/email/test` | Solo `NODE_ENV=development`: correo de prueba vía Resend al correo de recordatorios o cuenta |
 
 ## Paginación (futuro)
 

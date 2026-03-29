@@ -15,8 +15,11 @@ model User {
   passwordHash         String
   timezone             String               @default("UTC")
   notificationEmail    String? // recordatorios por correo; si null, se usa email de la cuenta
-  notificationPhone    String? // futuros avisos (p. ej. SMS)
+  notificationPhone    String? // SMS (E.164 recomendado) cuando Twilio está configurado
   reminderEmailEnabled Boolean              @default(true)
+  reminderSmsEnabled   Boolean              @default(false)
+  quietHoursStart      String? // HH:mm en User.timezone; con quietHoursEnd = ventana silenciosa
+  quietHoursEnd        String?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
   items                Item[]

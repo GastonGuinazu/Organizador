@@ -3,10 +3,10 @@ import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import authConfig from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  secret: process.env.AUTH_SECRET,
-  trustHost: true,
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -38,16 +38,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
-  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
-  pages: { signIn: "/login" },
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) token.sub = user.id;
-      return token;
-    },
-    session({ session, token }) {
-      if (session.user && token.sub) session.user.id = token.sub;
-      return session;
-    },
-  },
 });

@@ -26,12 +26,18 @@ export async function PATCH(req: Request) {
 
   const data: {
     reminderEmailEnabled?: boolean;
+    reminderSmsEnabled?: boolean;
     notificationEmail?: string | null;
     notificationPhone?: string | null;
+    quietHoursStart?: string | null;
+    quietHoursEnd?: string | null;
   } = {};
 
   if (parsed.data.reminderEmailEnabled !== undefined) {
     data.reminderEmailEnabled = parsed.data.reminderEmailEnabled;
+  }
+  if (parsed.data.reminderSmsEnabled !== undefined) {
+    data.reminderSmsEnabled = parsed.data.reminderSmsEnabled;
   }
   if (parsed.data.notificationEmail !== undefined) {
     const v = parsed.data.notificationEmail;
@@ -40,6 +46,14 @@ export async function PATCH(req: Request) {
   if (parsed.data.notificationPhone !== undefined) {
     const v = parsed.data.notificationPhone.trim();
     data.notificationPhone = v === "" ? null : v;
+  }
+  if (parsed.data.quietHoursStart !== undefined) {
+    const v = parsed.data.quietHoursStart.trim();
+    data.quietHoursStart = v === "" ? null : v;
+  }
+  if (parsed.data.quietHoursEnd !== undefined) {
+    const v = parsed.data.quietHoursEnd.trim();
+    data.quietHoursEnd = v === "" ? null : v;
   }
 
   await prisma.user.update({
