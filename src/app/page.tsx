@@ -22,18 +22,18 @@ export default async function Home() {
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-4">
-        <Link
+        <a
           href="/register"
           className="inline-flex min-h-11 items-center justify-center rounded-xl bg-teal-600 px-6 py-2 text-sm font-medium text-white hover:bg-teal-700"
         >
           Crear cuenta
-        </Link>
-        <Link
+        </a>
+        <a
           href="/login"
           className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-6 py-2 text-sm font-medium text-slate-800 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800"
         >
           Ya tengo cuenta
-        </Link>
+        </a>
       </div>
       <footer className="mt-auto flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
         <Link href="/privacidad" className="underline hover:text-teal-700 dark:hover:text-teal-400">

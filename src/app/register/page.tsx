@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -87,17 +86,17 @@ export default function RegisterPage() {
         </form>
         <p className="mt-4 text-center text-sm text-slate-600 dark:text-slate-400">
           ¿Ya tienes cuenta?{" "}
-          <Link href="/login" className="font-medium text-teal-700 underline dark:text-teal-400">
+          <a href="/login" className="font-medium text-teal-700 underline dark:text-teal-400">
             Entrar
-          </Link>
+          </a>
         </p>
         <p className="mt-6 flex flex-wrap justify-center gap-x-4 gap-y-1 text-center text-xs text-slate-500 dark:text-slate-400">
-          <Link href="/privacidad" className="underline hover:text-teal-700 dark:hover:text-teal-400">
+          <a href="/privacidad" className="underline hover:text-teal-700 dark:hover:text-teal-400">
             Privacidad
-          </Link>
-          <Link href="/terminos" className="underline hover:text-teal-700 dark:hover:text-teal-400">
+          </a>
+          <a href="/terminos" className="underline hover:text-teal-700 dark:hover:text-teal-400">
             Términos
-          </Link>
+          </a>
         </p>
       </Card>
     </div>
